@@ -86,3 +86,47 @@ To publish the application to a GitLab registry, follow these steps:
    npm publish
    ```
    This will publish the package to your GitLab registry.
+
+---
+
+## Industrialisation : Docker & CI/CD
+
+### Lancer l'application avec Docker
+
+Prérequis : Docker 24+ et Docker Compose v2.
+
+```bash
+docker compose up -d --build
+```
+
+L'application est servie par Nginx sur http://localhost (endpoint de santé : http://localhost/health).
+Le port peut être changé avec la variable `APP_PORT` (ex. `APP_PORT=8081 docker compose up -d`).
+
+| Fichier | Rôle |
+|---|---|
+| `Dockerfile` | Build multi-stage : `node:22-alpine` compile l'application, `nginx-unprivileged:1.27-alpine` (non-root, port 8080) sert uniquement `dist/…/browser` |
+| `.dockerignore` | Exclut `node_modules`, `dist`, rapports, fichiers Git/IDE du contexte de build |
+| `docker-compose.yml` | Service `front` (port 80 → 8080), healthcheck et rotation des logs |
+| `nginx/nginx.conf` | Configuration Nginx (SPA fallback, cache des assets, `/health`) |
+
+### Exécuter les tests
+
+```bash
+./run-tests.sh
+```
+
+Le script détecte le type de projet, vérifie les prérequis (Node 20+, Chrome/Chromium), exécute les tests Karma
+en headless avec couverture et place les rapports dans `test-results/` (`junit-report.xml` + `coverage/`).
+Codes de sortie : `0` succès, `1` tests en échec, `2` environnement invalide, `3` aucun rapport produit.
+
+### Pipeline CI/CD (GitHub Actions)
+
+Le workflow `.github/workflows/ci.yml` est générique (même fichier pour le back-end Spring Boot) :
+
+1. **detect** : type de projet via `./run-tests.sh --detect`
+2. **test** : `./run-tests.sh`, rapport JUnit publié dans l'onglet *Checks*, résultats archivés en artefact
+3. **build** : image Docker construite, validée par un smoke test `docker compose up --wait`, puis poussée sur
+   `ghcr.io/<owner>/<repo>` avec les tags `<branche>`, `<branche>-<sha>`, `sha-<sha>` (+ `latest` sur `main`)
+4. **release** (branche `main`) : [semantic-release](https://semantic-release.gitbook.io/) calcule la version à partir
+   des commits conventionnels (`feat:`, `fix:`…), crée le tag Git et la GitHub Release, puis ajoute les tags `X.Y.Z`
+   et `X.Y` à l'image déjà publiée.
