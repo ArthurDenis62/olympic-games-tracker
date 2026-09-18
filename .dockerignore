@@ -1,0 +1,27 @@
+# Dépendances et artefacts : réinstallés / reconstruits dans l'image
+node_modules/
+dist/
+.angular/
+coverage/
+reports/
+test-results/
+.npm/
+tmp/
+out-tsc/
+
+# Git, IDE, CI
+.git
+.github
+.gitignore
+.vscode
+.idea
+.editorconfig
+
+# Fichiers non nécessaires à l'image
+docker-compose*.yml
+Dockerfile
+.dockerignore
+k8s/
+*.md
+run-tests.sh
+karma.conf.js
