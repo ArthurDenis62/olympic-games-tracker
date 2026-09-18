@@ -30,12 +30,17 @@ module.exports = function (config) {
       subdir: '.',
       reporters: [
         { type: 'html' },
+        { type: 'lcovonly' },
+        { type: 'cobertura' },
         { type: 'text-summary' }
       ]
     },
     reporters: ['progress', 'junit'],
     junitReporter: {
-      outputDir: 'reports',
+      outputDir: 'reports', // collecté dans test-results/ par run-tests.sh
+      useBrowserName: false,
+      outputFile: 'junit-report.xml',
+      suite: 'olympic-games-tracker',
     },
     port: 9876,
     colors: true,
